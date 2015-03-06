@@ -11,8 +11,11 @@ int main(int argc, char* argv[])
     timestamp_type time1, time2;
 
     int N = atoi(argv[1]);
+    int maxiter = atoi(argv[2]);
+
     int rank;
     int p;
+    int tag = 21;
     MPI_Init();
     MPI_Status status;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -25,6 +28,9 @@ int main(int argc, char* argv[])
 
     int n = (int) N/p + 2;
 
+    double h =(double) 1/(N+1);
+    double hsq = pow(h, 2.);
+
     double *u = (double*) malloc(sizeof(double)*n);
     double *utemp = (double*) malloc(sizeof(double)*n);
     double f = 1.;
@@ -32,47 +38,72 @@ int main(int argc, char* argv[])
     int iter = 0;
     double res = sqrt(N);
     double sum;
-
-    double h =(double) 1/(N+1);
-    double hsq = pow(h, 2.);
+    double other;//To collect residuals from processes other than 0
 
 
-    for (i = 0; i < N; ++i) {
+    for (i = 0; i < n; ++i) {
         u[i] = 0.;
     }
 
     get_timestamp(&time1);
 
-    while(res > sqrt(N)*1.E-6) {
-/*
-        if (N > 1000 && iter > 10000)
-            break;
-*/
+    while(res > sqrt(N)*1.E-6 && iter < maxiter) {
+        //BC here have u[0] = 0 for process 0
+        if (0 == rank) {
+            u[0] = 0;
+            MPI_Send(&u[n-2], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD);
+            MPI_Recv(&u[n-1], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status);
+        }
 
-        MPI_Send(&u[0], 1, MPI_DOUBLE, rank-1, MPI_COMM_WORLD,
+        else if (p-1 == rank) {
+            u[n-1] = 0;
+            MPI_Recv(&u[0], 1, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD, &status);
+            MPI_Send(&u[1], 1, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD);
+        }
 
-        //Note BC here have u[-1] = 0 for process 0 and u[N] = 0 for last process implicitly
-        if (0 == rank):
-            utemp[0] = 0;
+        else {
+            MPI_Recv(&u[0], 1, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD, &status);
+            MPI_Send(&u[1], 1, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD);
+            MPI_Send(&u[n-2], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD);
+            MPI_Recv(&u[n-1], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status); 
+        }
 
-//            utemp[0] = hsq*(f -(-u[1])/hsq)/2;
-        else:
-            MPI_Recv
-            
 
-        for (i = 1; i < N-1; ++i)
+//        utemp[0] = hsq*(f -(-u[1])/hsq)/2;
+
+        for (i = 1; i < n-1; ++i)
             utemp[i] = hsq*(f - (-u[i-1] - u[i+1])/hsq)/2;
-        utemp[N-1] = hsq*(f - (-u[N-2])/hsq)/2;
 
-        for (i = 0; i < N; ++i)
+//        utemp[N-1] = hsq*(f - (-u[N-2])/hsq)/2;
+
+        for (i = 1; i < n-1; ++i)
             u[i] = utemp[i];
         
         sum = 0.;
-        sum += pow((2*u[0] - u[1])/hsq - 1, 2.);
-        for (i = 1; i < N-1; ++i)
-            sum += pow((-u[i-1] + 2*u[i] - u[i+1])/hsq - 1, 2.);
-        sum += pow((-u[N-2] + 2*u[N-1])/hsq - 1, 2.);
-        res = sqrt(sum);
+
+        /*Note we don't need to add to the residual for the first cell in process 0
+          or the last cell in process p-1 since they're set by the BC.*/
+        for (i = 1; i < n-1; ++i)
+            sum += pow((-u[i-1] + 2*u[i] - u[i+1])/hsq - f, 2.);
+
+        /*Receive the residual sums from all other processes, add them together
+          take square root and send back to other processes*/
+        if (0 == rank) {
+            for (i = 1; i < p; ++i) {
+                MPI_Recv(&other, 1, MPI_DOUBLE, i, tag, MPI_COMM_WORLD, &status);
+                sum += other;
+            }
+            
+            res = sqrt(sum);
+            for (i = 1; i < p; ++i)
+                MPI_Send(&res, 1, MPI_DOUBLE, i, tag, MPI_COMM_WORLD);
+        }
+        //Receive the residual from process 0
+        else {
+            MPI_Send(&sum, 1, MPI_DOUBLE, 0, tag, MPI_COMM_WORLD);
+            MPI_Recv(&res, 1, MPI_DOUBLE, 0, tag, MPI_COMM_WORLD, &status);
+        }
+
         
         iter++;
     }
@@ -92,8 +123,8 @@ int main(int argc, char* argv[])
     */
 
 
-    free(u);
-    free(utemp);
+//    free(u);
+//    free(utemp);
 
     return 0;
 }
