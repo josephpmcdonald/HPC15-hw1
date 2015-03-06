@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     int rank;
     int p;
     int tag = 21;
-    MPI_Init();
+    MPI_Init(&argc, &argv);
     MPI_Status status;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &p);
@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
     while(res > sqrt(N)*1.E-6 && iter < maxiter) {
         //BC here have u[0] = 0 for process 0
         if (0 == rank) {
+            printf("%d", iter);
             u[0] = 0;
             MPI_Send(&u[n-2], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD);
             MPI_Recv(&u[n-1], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status);
@@ -97,6 +98,8 @@ int main(int argc, char* argv[])
             res = sqrt(sum);
             for (i = 1; i < p; ++i)
                 MPI_Send(&res, 1, MPI_DOUBLE, i, tag, MPI_COMM_WORLD);
+
+            printf("\r");
         }
         //Receive the residual from process 0
         else {
@@ -109,13 +112,15 @@ int main(int argc, char* argv[])
     }
 
     get_timestamp(&time2);
-    elapsed = timestamp_diff_in_seconds(time1,time2);
-
-    printf("Jacobi:\n");
-    printf("residual = %f\n", res);
-    printf("iterations = %d\n", iter);
-    printf("elapsed time = %f\n\n", elapsed);
-        
+    double elapsed = timestamp_diff_in_seconds(time1,time2);
+   
+    int middle = (int) p/2;
+    if (middle == rank) {
+        printf("residual = %f\n", res);
+        printf("iterations = %d\n", iter);
+        printf("elapsed time = %f\n", elapsed);
+        printf("u[0] = %f\n", u[0]);
+    }
     /*
     for (i = 0; i < N; ++i){
         printf("u[%d]=%f\n", i, u[i]);
