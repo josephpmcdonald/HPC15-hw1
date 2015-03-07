@@ -11,11 +11,14 @@ int main(int argc, char *argv[]) {
     }
 
     int N = atoi(argv[1]);
+    printf("Message will be passed around process ring %d times.\n", N);
     int rank, msgout, msgin, P;
     int tag = 21;
     msgin = 0;
+    msgout = 0;
     timestamp_type time1, time2;
     double diff;
+    double latency;
 
     MPI_Status status;
     MPI_Init(&argc, &argv);
@@ -28,12 +31,12 @@ int main(int argc, char *argv[]) {
         get_timestamp(&time1);
     }
 
-    //Passing single integer as message around the ring
+    //Passing single integer as message around the ring. Note we pass around the ring N times
     for (i = 0; i < N; ++i) {
 
         //Handle processor 0 separately for correct start and end
         if (0 == rank) {
-            msgout = msgin + rank;
+            //msgout = msgin + rank;
             //printf("The process %d reporting. The message is %d\n", rank, msgout);
             MPI_Send(&msgout, 1, MPI_INT, 1, tag, MPI_COMM_WORLD);
             MPI_Recv(&msgin, 1, MPI_INT, P-1, tag, MPI_COMM_WORLD, &status);
@@ -42,7 +45,7 @@ int main(int argc, char *argv[]) {
         //Other processors
         else {
             MPI_Recv(&msgin, 1, MPI_INT, rank-1, tag, MPI_COMM_WORLD, &status);
-            msgout = msgin + rank;
+            //msgout = msgin + rank;
             //printf("The process %d reporting. The message is %d\n", rank, msgout);
             MPI_Send(&msgout, 1, MPI_INT, (rank+1)%P, tag, MPI_COMM_WORLD);
         }
@@ -50,16 +53,19 @@ int main(int argc, char *argv[]) {
 
     //Processor 0 gets last timestamp and determines latency
     if (0 == rank) {
-        printf("The process %d reporting. The FINAL message is %d\n", rank, msgin);
+        printf("The process %d reporting. The final message is %d\n", rank, msgin);
         get_timestamp(&time2);
         diff = timestamp_diff_in_seconds(time1, time2);
-        double latency = diff/(P*N);
-        printf("Latency: %f\n", latency);
+        latency = diff/(P*N);
+        printf("Latency: %f seconds for Send/Receive\n", latency);
     }
 
-    //Passing large array around ring
+
+/*
+    //This portion of the code passes a large array around the ring    
+    //Uncomment to test
+
     int size = 250000;
-    //double *arrayout = calloc(size, sizeof(double));
     int doublesize = sizeof(double);
     double *array  = calloc(size, doublesize);
 
@@ -96,8 +102,14 @@ int main(int argc, char *argv[]) {
         printf("Bandwidth: %f Mbytes per sec\n", bandwidth);
     }
 
+
+*/
+
+
     MPI_Finalize();
     return 0;
 }
+
+
 
 
