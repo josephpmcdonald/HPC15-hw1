@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
 
         //Handle processor 0 separately for correct start and end
         if (0 == rank) {
+            //Commenting out the addition, already used it to check that communication happens
             //msgout = msgin + rank;
             //printf("The process %d reporting. The message is %d\n", rank, msgout);
             MPI_Send(&msgout, 1, MPI_INT, 1, tag, MPI_COMM_WORLD);
@@ -62,12 +63,14 @@ int main(int argc, char *argv[]) {
 
 
 /*
+
     //This portion of the code passes a large array around the ring    
     //Uncomment to test
 
     int size = 250000;
-    int doublesize = sizeof(double);
-    double *array  = calloc(size, doublesize);
+    int typesize = sizeof(int);
+    double *array  = calloc(size, typesize);
+    printf("Passing ~2Mb array %d times.\n", N);
 
     //Processor 0 fills array entries and gets timestamp
     if (0 == rank) {
@@ -80,14 +83,14 @@ int main(int argc, char *argv[]) {
     //printf("rank=%d\n",rank);
     for (i = 0; i < N; i++) {
         if (0 == rank) {
-            array[0] = i;
+            //array[0] = i;
             MPI_Send(array, size, MPI_DOUBLE, 1, tag, MPI_COMM_WORLD);
-            printf("Rank %d, run %f \n", rank, array[0]);
+            //printf("Rank %d, run %f \n", rank, array[0]);
             MPI_Recv(array, size, MPI_DOUBLE, P-1, tag, MPI_COMM_WORLD, &status);
         } 
         else {
             MPI_Recv(array, size, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD, &status);
-            printf("Rank %d, run %f, value in space rank is %f\n", rank, array[0], array[rank]);
+            //printf("Run %f, rank %d, value in space rank is %f\n", array[0], rank, array[rank]);
             MPI_Send(array, size, MPI_DOUBLE, (rank+1)%P, tag, MPI_COMM_WORLD);
         }
     }
@@ -98,7 +101,7 @@ int main(int argc, char *argv[]) {
         //printf("%d %d %d %d %f\n", doublesize, size, P, N, diff);
         //Note that I measure bandwidth as the size of the array in bytes times the number of times it gets passed between processors divided by time. Then reduce it to size in megabytes.
         double bandwidth;
-        bandwidth = ((double) doublesize*size*P*N)/(diff*pow(10,6));
+        bandwidth = ((double) typesize*size*P*N)/(diff*pow(10,6));
         printf("Bandwidth: %f Mbytes per sec\n", bandwidth);
     }
 
