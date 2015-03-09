@@ -21,9 +21,28 @@ microseconds, still noticeably faster than the performance on my personal box.
 Splitting the 20 processes between crunchy1 and crunchy 3 consistently
 required around 150 microseconds.
 
+After modifying the code to pass a large array around the processors on my
+box, I found that the bandwidth in (bytes per second) would range from a few
+hundred to a few thousand megabytes per second. When increasing the number of
+processes to 10 this would inhibit the bandwidth to between 50 to a few
+hundred MB per second.
 
 
 
+In jacobi-mpi, I use the same Jacobi iterator from Homework 0 and, after
+implementing for multiple processors, checked the residual and a point in the
+middle to ensure it was still converging as expected. To test performance and
+observe scaling I tried running the program on both my own box and a couple of
+the crunchy boxes for a maximum of 10 iterations on a grid of 10^8 points. I
+did observe strong scaling, first starting with 4 processes on crunchy which
+took between 5 to 10 seconds. Increasing the processes to 5, then 8 and 10,
+and finally 20, improvements in speed were noticeable with 20 processes across
+three boxes requiring about 1.5 seconds. 8 and 10 processes both took about
+2.5 to 3 seconds, while 5 processes was pretty similar to 4.
 
-In jacobi-mpi, 
+The Jacobi iteration is pretty easy to implement in parallel since the vector
+is updated only at the end of each iteration. Gauss-Seidel would be much more
+difficult since the solution is updated within the loop of each iteration.
+
+
 

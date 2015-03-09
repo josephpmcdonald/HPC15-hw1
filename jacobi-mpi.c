@@ -3,7 +3,7 @@
 #include <math.h>
 #include <mpi.h>
 #include "util.h"
-
+#include <unistd.h>
 
 int main(int argc, char* argv[])
 {
@@ -25,6 +25,10 @@ int main(int argc, char* argv[])
         printf("Error: N must be multiple of number of processes\n");
         return 1;
     }
+
+    char hostname[1024];
+    gethostname(hostname,1024);
+    printf("Rank %d supported on Host %s.\n", rank, hostname);
 
     int n = (int) N/p + 2;
 
@@ -119,7 +123,7 @@ int main(int argc, char* argv[])
         printf("residual = %f\n", res);
         printf("iterations = %d\n", iter);
         printf("elapsed time = %f\n", elapsed);
-        printf("u[0] = %f\n", u[0]);
+        //printf("u[0] = %f\n", u[0]);
     }
     /*
     for (i = 0; i < N; ++i){
