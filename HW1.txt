@@ -1,9 +1,28 @@
 Joseph McDonald - Homework 1
 
-In int_ring, I structured the program so that the argument given to the executable is the
- number of loops around the process ring. So if there are 10 processes and N = 1000,
- then 10,000 messages will be passed. Latency is measured as the time for each
- Send/Receive pair, or time/N*P, where P is the number of processes.
+
+In int_ring, I structured the program so that the argument giveen to the
+executable is the number of loops around the process ring. So if there are 10
+processes and N = 1000, then 10,000 messages will be passed. Latency is
+measured as the time for each Send/Receive pair, or time/N*P, where P is the
+number of processes.
+
+I tested int_ring on a single CIMS box first using 4 processes, which
+consistently gave a latency on the order of 1 microsecond. I then tried 8
+processes which regularly gave microsecond latencies but would occasionally
+require times around 1 millisecond. Running with 10 processes consistently had
+latencies on the order of 1 millisecond. For this reason I suspect my box has
+8 cores. Requiring 20 processes consistently took my box around 5 milliseconds
+to send and receive a message.
+
+I then tested int_ring on crunchy1 for 20 processes and got latencies that
+would regularly vary between several microseconds to a few hundred
+microseconds, still noticeably faster than the performance on my personal box.
+Splitting the 20 processes between crunchy1 and crunchy 3 consistently
+required around 150 microseconds.
+
+
+
 
 
 In jacobi-mpi, 
